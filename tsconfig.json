@@ -1,16 +1,40 @@
 {
+  // "compilerOptions": {
+  //   "target": "ES2020",
+  //   "module": "CommonJS",
+  //   "outDir": "./dist",
+  //   "rootDir": "./src",
+  //   "strict": true,
+  //   "esModuleInterop": true,
+  //   "skipLibCheck": true,
+  //   "forceConsistentCasingInFileNames": true,
+  //   "noEmit": true,
+  //   "allowImportingTsExtensions": true
+  // },
+  // "include": ["src/**/*"],
+  // "exclude": ["node_modules"]
   "compilerOptions": {
     "target": "ES2020",
-    "module": "CommonJS",
-    "outDir": "./dist",
+    "module": "nodenext",
     "rootDir": "./src",
+    "outDir": "./dist",
     "strict": true,
     "esModuleInterop": true,
-    "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "noEmit": true,
+    "skipLibCheck": true,
+    "moduleResolution": "NodeNext",
+    "resolveJsonModule": true,
+    "types": ["node"],
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "isolatedModules": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "emitDeclarationOnly": true,
     "allowImportingTsExtensions": true,
+    "typeRoots": ["./src/types", "./node_modules/@types"]
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules"]
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
 }
