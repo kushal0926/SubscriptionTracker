@@ -8,17 +8,15 @@ import connectToDatabase from "./database/mongodb.ts";
 import errorMiddlware from "./middleware/error.middleware.ts";
 import cookieParser from "cookie-parser";
 
-
 const app: Express = express();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-app.use(cookieParser())
+app.use(cookieParser());
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/subscriptions", subscriptionRouter);
-app.use(errorMiddlware)
-
+app.use(errorMiddlware);
 
 app.get("/", (req: Request, res: Response) => {
   res.send(`making the subscription tracking app using typescript`);
@@ -26,7 +24,7 @@ app.get("/", (req: Request, res: Response) => {
 
 app.listen(PORT, async () => {
   console.log(
-    `THE SUBSCRIPTION TRACKER APP API IS RUNNING IN PORT: http://localhost:${PORT}`,
+    `THE SUBSCRIPTION TRACKER APP API IS RUNNING IN PORT:http://localhost:${PORT}`,
   );
 
   await connectToDatabase();
