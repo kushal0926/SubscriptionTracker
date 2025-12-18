@@ -1,15 +1,13 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
+import { getUser, getUsers } from "../controller/user.controller.ts";
+import authorize from "../middleware/auth.middleware.ts";
 
 const userRouter: Router = Router();
 
-userRouter.get("/", (req: Request, res: Response) => {
-  res.send({ title: "user routes to get all users" });
-});
+userRouter.get("/", getUsers);
 
-userRouter.get("/:id", (req: Request, res: Response) => {
-  res.send({ title: "user routes to get details" });
-});
+userRouter.get("/:id", authorize, getUser);
 
 userRouter.post("/", (req: Request, res: Response) => {
   res.send({ title: "user routes to creating new users" });

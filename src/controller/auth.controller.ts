@@ -20,6 +20,12 @@ interface SignInRequestBody {
   password: string;
 }
 
+interface SignOutRequestBody {
+  // for signOut
+  email: string;
+  password: string;
+}
+
 // extending request interface with typed body
 interface TypedRequest<T> extends Request {
   body: T;
@@ -151,7 +157,7 @@ export const signIn = async (
 // for user signOut
 //
 export const signOut = async (
-  req: Request,
+  req: TypedRequest<SignOutRequestBody>,
   res: Response,
   next: NextFunction,
 ) => {
