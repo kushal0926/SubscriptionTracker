@@ -80,9 +80,10 @@ const subscriptionSchema = new Schema<Subscription>(
     },
     renewalDate: {
       type: Date,
-      required: [true, "Select your renewal date"],
+      required: [false, "Select your renewal date"],
       validate: {
         validator: function (value: Date) {
+          if (!value) return true;
           const doc = this as Subscription;
           return doc.startDate && value > doc.startDate;
         },
