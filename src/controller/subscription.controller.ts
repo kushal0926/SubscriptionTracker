@@ -1,6 +1,8 @@
 import type { Request, Response, NextFunction } from "express";
 import SubscriptionModel from "../models/subscription.model.ts";
-import { Types } from "mongoose";
+import { workflowClient } from "../config/upstash.ts";
+import { SERVER_URL } from "../config/env.ts";
+import { Types } from "mongoose";  
 
 // custom error
 type CustomError = Error & {
@@ -12,17 +14,32 @@ type CustomError = Error & {
 
 //
 // creating a new subscription
-// 
+//
 export const createSubscription = async (
   req: Request,
   res: Response,
   next: NextFunction,
 ) => {
   try {
-    const subscription = await SubscriptionModel.create({
+    const subscription= await SubscriptionModel.create({
       ...req.body,
       user: req.user._id,
     });
+    
+      const { workflowRunId } = await Promise.all(
+          subscription.map(sub =>
+              workflowClient.trigger({
+                  url: `${SERVER_URL}/api/v1/workflows/subscription/reminder`,
+                  body: {
+                      subscriptionId: sub._id.toString(),
+                  },
+                  headers: {
+                      "content-type": "application/json",
+                  },
+              })
+        )
+    );
+      
     res.status(200).json({ success: true, data: subscription });
   } catch (error) {
     next(error);
@@ -31,7 +48,7 @@ export const createSubscription = async (
 
 //
 // get all subscriptions for the authenticated user
-// 
+//
 export const getAllSubscriptions = async (
   req: Request,
   res: Response,
@@ -39,17 +56,21 @@ export const getAllSubscriptions = async (
 ) => {
   try {
     if (!req.user || !req.user.id) {
-        return res.status(401).json({
-                success: false,
-                error: "Authentication required"
-              });
+      return res.status(401).json({
+        success: false,
+        error: "Authentication required",
+      });
     }
 
     const subscriptions = await SubscriptionModel.find({
       user: req.user._id,
     }).sort({ createdAt: -1 });
 
-    res.status(200).json({ success: true, count: subscriptions.length,data: subscriptions });
+    res.status(200).json({
+      success: true,
+      count: subscriptions.length,
+      data: subscriptions,
+    });
   } catch (error) {
     next(error);
   }
@@ -57,41 +78,45 @@ export const getAllSubscriptions = async (
 
 //
 // getting  user Subscription by Id
-// 
+//
 export const getUserSubscriptions = async (
   req: Request,
   res: Response,
   next: NextFunction,
 ) => {
   try {
-      const { id } = req.params;
-      if (!id || !Types.ObjectId.isValid(id)) {
-         return res.status(400).json({
-           success: false,
-           error: "Invalid user id format"
-         });
-       }
-   
-       if (!req.user || !req.user._id) {
-         return res.status(401).json({
-           success: false,
-           error: "Authentication required"
-         });
-       }
-   
-       // Check if user is accessing their own subscriptions
-       if (req.user._id.toString() !== id) {
-         return res.status(403).json({
-           success: false,
-           error: "You can only view your own subscriptions"
-         });
-       }
+    const { id } = req.params;
+    if (!id || !Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid user id format",
+      });
+    }
 
-      const subscriptions = await SubscriptionModel.find({
-          user: req.user._id,
-      }).sort({ createdAt: -1 });
-      
-    res.status(200).json({ success: true,  count: subscriptions.length ,data: subscriptions });
+    if (!req.user || !req.user._id) {
+      return res.status(401).json({
+        success: false,
+        error: "Authentication required",
+      });
+    }
+
+    // Check if user is accessing their own subscriptions
+    if (req.user._id.toString() !== id) {
+      return res.status(403).json({
+        success: false,
+        error: "You can only view your own subscriptions",
+      });
+    }
+
+    const subscriptions = await SubscriptionModel.find({
+      user: req.user._id,
+    }).sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: subscriptions.length,
+      data: subscriptions,
+    });
   } catch (error) {
     next(error);
   }
@@ -99,7 +124,7 @@ export const getUserSubscriptions = async (
 
 //
 // getting subscriptions by id
-// 
+//
 export const getSubscriptionsById = async (
   req: Request,
   res: Response,
@@ -109,19 +134,19 @@ export const getSubscriptionsById = async (
     const { id } = req.params;
 
     if (!id || !Types.ObjectId.isValid(id)) {
-       return res.status(400).json({
-         success: false,
-         error: "Invalid subscription ID format"
-       });
-     }
- 
-     if (!req.user || !req.user._id) {
-       return res.status(401).json({
-         success: false,
-         error: "Authentication required"
-       });
-      };
-      
+      return res.status(400).json({
+        success: false,
+        error: "Invalid subscription ID format",
+      });
+    }
+
+    if (!req.user || !req.user._id) {
+      return res.status(401).json({
+        success: false,
+        error: "Authentication required",
+      });
+    }
+
     const subscription = await SubscriptionModel.findById(id);
 
     if (!subscription) {
@@ -132,10 +157,10 @@ export const getSubscriptionsById = async (
 
     //verefying if user owns this subscriptions
     if (subscription.user.toString() !== req.user._id.toString()) {
-        return res.status(403).json({
-                success: false,
-                error: "Forbidden: You can only view your own subscriptions"
-              });
+      return res.status(403).json({
+        success: false,
+        error: "Forbidden: You can only view your own subscriptions",
+      });
     }
 
     res.status(200).json({ success: true, data: subscription });
@@ -146,7 +171,7 @@ export const getSubscriptionsById = async (
 
 //
 // updating any subscriptions
-// 
+//
 export const updateSubscriptions = async (
   req: Request,
   res: Response,
@@ -154,18 +179,18 @@ export const updateSubscriptions = async (
 ) => {
   try {
     const { id } = req.params;
-  
+
     if (!id || !Types.ObjectId.isValid(id)) {
       return res.status(400).json({
         success: false,
-        error: "Invalid subscription id"
+        error: "Invalid subscription id",
       });
     }
 
     if (!req.user || !req.user._id) {
       return res.status(401).json({
         success: false,
-        error: "Authentication required"
+        error: "Authentication required",
       });
     }
 
@@ -184,10 +209,10 @@ export const updateSubscriptions = async (
     );
 
     if (!updatedSubscription) {
-        return res.status(404).json({
-               success: false,
-               error: "Subscription not found or unauthorized"
-             });
+      return res.status(404).json({
+        success: false,
+        error: "Subscription not found or unauthorized",
+      });
     }
 
     res.status(200).json({ success: true, data: updatedSubscription });
@@ -198,138 +223,144 @@ export const updateSubscriptions = async (
 
 //
 // deleting an subscriptions
-// 
+//
 export const deletingSubscriptions = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
+  req: Request,
+  res: Response,
+  next: NextFunction,
 ) => {
-    try {
-        const { id } = req.params;
-        if (!id || !Types.ObjectId.isValid(id)) {
-              return res.status(400).json({
-                success: false,
-                error: "Invalid subscription id"
-              });
-            }
-        
-            if (!req.user || !req.user._id) {
-              return res.status(401).json({
-                success: false,
-                error: "Authentication required"
-              });
-            }
-
-            // checking if subscription exists and belongs to user
-               const subscription = await SubscriptionModel.findOne({
-                 _id: id,
-                 user: req.user._id
-               });
-           
-               if (!subscription) {
-                 return res.status(404).json({
-                   success: false,
-                   error: "Subscription not found or unauthorized"
-                 });
-               }
-               
-         await SubscriptionModel.findByIdAndDelete(id);
-        
-        res.status(200).json({ success: true, message: "Subscription deleted succesfully" });
-    } catch (error) {
-        next(error);
+  try {
+    const { id } = req.params;
+    if (!id || !Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid subscription id",
+      });
     }
+
+    if (!req.user || !req.user._id) {
+      return res.status(401).json({
+        success: false,
+        error: "Authentication required",
+      });
+    }
+
+    // checking if subscription exists and belongs to user
+    const subscription = await SubscriptionModel.findOne({
+      _id: id,
+      user: req.user._id,
+    });
+
+    if (!subscription) {
+      return res.status(404).json({
+        success: false,
+        error: "Subscription not found or unauthorized",
+      });
+    }
+
+    await SubscriptionModel.findByIdAndDelete(id);
+
+    res
+      .status(200)
+      .json({ success: true, message: "Subscription deleted succesfully" });
+  } catch (error) {
+    next(error);
+  }
 };
 
 //
 // cancellig an subscriptions or settings its status to cancelled
-// 
+//
 export const cancelSubscriptions = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
+  req: Request,
+  res: Response,
+  next: NextFunction,
 ) => {
-    try {
-        const { id } = req.params;
+  try {
+    const { id } = req.params;
 
-        if (!id || !Types.ObjectId.isValid(id)) {
-          return res.status(400).json({
-            success: false,
-            error: "Invalid subscription ID"
-          });
-        }
-    
-        if (!req.user || !req.user._id) {
-          return res.status(401).json({
-            success: false,
-            error: "Authentication required"
-          });
-        }
-        
-        const subscription = await SubscriptionModel.findOne({
-              _id: id,
-              user: req.user._id
-            });
-        
-        if (!subscription) {
-            return res.status(404).json({
-              success: false,
-              error: "Subscription not found or unauthorized"
-            });
-          }
-      
-          if (subscription.status === "cancelled") {
-            return res.status(400).json({
-              success: false,
-              error: "Subscription is already cancelled"
-            });
-          }
-        
-        subscription.status = "cancelled";
-        await subscription.save()
-        
-        res.status(200).json({ success: true,message: "Subscription cancelled successfully", data: subscription });
-    } catch (error) {
-        next(error);
+    if (!id || !Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid subscription ID",
+      });
     }
+
+    if (!req.user || !req.user._id) {
+      return res.status(401).json({
+        success: false,
+        error: "Authentication required",
+      });
+    }
+
+    const subscription = await SubscriptionModel.findOne({
+      _id: id,
+      user: req.user._id,
+    });
+
+    if (!subscription) {
+      return res.status(404).json({
+        success: false,
+        error: "Subscription not found or unauthorized",
+      });
+    }
+
+    if (subscription.status === "cancelled") {
+      return res.status(400).json({
+        success: false,
+        error: "Subscription is already cancelled",
+      });
+    }
+
+    subscription.status = "cancelled";
+    await subscription.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Subscription cancelled successfully",
+      data: subscription,
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 //
 // getting upcomming subscriptions within the span of 7 days
-// 
+//
 export const upcommingSubscriptions = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
+  req: Request,
+  res: Response,
+  next: NextFunction,
 ) => {
-    try {
-        if (!req.user || !req.user._id) {
-            return res.status(401).json({  
-                success: false,
-                error: "Authentication is required"
-            });
-        };
-        
-        const today = new Date();
-        const nextWeek = new Date();
-        nextWeek.setDate(today.getDate() + 7);
-        
-        
-        const upcomingSubscription = await SubscriptionModel.find({  // Fixed typo
-            user: req.user._id,
-            status: "active",
-            renewalDate: {
-                $gte: today,
-                $lte: nextWeek
-            }
-        }).sort({ renewalDate: 1 });
-            
-        return res.status(200).json({
-            success: true,
-            count: upcomingSubscription.length, 
-            data: upcomingSubscription
-        });
-    } catch (error) {
-        next(error);
+  try {
+    if (!req.user || !req.user._id) {
+      return res.status(401).json({
+        success: false,
+        error: "Authentication is required",
+      });
     }
+
+    const today = new Date();
+    const nextWeek = new Date();
+    nextWeek.setDate(today.getDate() + 7);
+
+    const upcomingSubscription = await SubscriptionModel.find({
+      // Fixed typo
+      user: req.user._id,
+      status: "active",
+      renewalDate: {
+        $gte: today,
+        $lte: nextWeek,
+      },
+    }).sort({ renewalDate: 1 });
+
+    return res.status(200).json({
+      success: true,
+      count: upcomingSubscription.length,
+      data: upcomingSubscription,
+    });
+  } catch (error) {
+    next(error);
+  }
 };

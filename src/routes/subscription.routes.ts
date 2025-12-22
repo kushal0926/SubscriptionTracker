@@ -1,7 +1,7 @@
 import { Router } from "express";
 import authorize from "../middleware/auth.middleware.ts";
 import {
-    cancelSubscriptions,
+  cancelSubscriptions,
   createSubscription,
   deletingSubscriptions,
   getAllSubscriptions,
@@ -16,7 +16,11 @@ const subscriptionRouter: Router = Router();
 // getting all subscriptions for authenticated users
 subscriptionRouter.get("/", authorize, getAllSubscriptions);
 // getting upcomming renewals
-subscriptionRouter.get("/upcomming-renewals", authorize, upcommingSubscriptions);
+subscriptionRouter.get(
+  "/upcomming-renewals",
+  authorize,
+  upcommingSubscriptions,
+);
 // getting single subscriptions by id
 subscriptionRouter.get("/:id", authorize, getSubscriptionsById);
 //creating any new subscriptions

@@ -1,6 +1,7 @@
 import { Schema, model, Document, Types } from "mongoose";
 
 interface Subscription extends Document {
+  // _id: Types.ObjectId;
   name: string;
   price: number;
   currency: "USD" | "EUR" | "NPR";

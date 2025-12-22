@@ -8,6 +8,7 @@ import connectToDatabase from "./database/mongodb.ts";
 import errorMiddlware from "./middleware/error.middleware.ts";
 import cookieParser from "cookie-parser";
 import arjectMiddleware from "./middleware/arject.middleware.ts";
+import workflowRouter from "./routes/workflow.routes.ts";
 
 const app: Express = express();
 
@@ -16,9 +17,11 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(errorMiddlware);
 app.use(arjectMiddleware);
+// apis
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/subscriptions", subscriptionRouter);
+app.use("/api/v1/workflows", workflowRouter);
 
 app.get("/", (req: Request, res: Response) => {
   res.send(`making the subscription tracking app using typescript`);
