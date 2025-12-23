@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import SubscriptionModel from "../models/subscription.model.ts";
+import type {ISubscription, SubscriptionDocument } from "../models/subscription.model.ts";
 import { workflowClient } from "../config/upstash.ts";
 import { SERVER_URL } from "../config/env.ts";
 import { Types } from "mongoose";  
@@ -21,25 +22,24 @@ export const createSubscription = async (
   next: NextFunction,
 ) => {
   try {
-    const subscription= await SubscriptionModel.create({
-      ...req.body,
-      user: req.user._id,
-    });
+      const subscription: SubscriptionDocument = await SubscriptionModel.create({
+          ...req.body as ISubscription,
+          user: req.user._id,
+      });
     
-      const { workflowRunId } = await Promise.all(
-          subscription.map(sub =>
-              workflowClient.trigger({
-                  url: `${SERVER_URL}/api/v1/workflows/subscription/reminder`,
-                  body: {
-                      subscriptionId: sub._id.toString(),
-                  },
-                  headers: {
-                      "content-type": "application/json",
-                  },
-              })
-        )
-    );
-      
+   try {
+       await workflowClient.trigger({
+           url: `${SERVER_URL}/api/v1/workflows/subscription/reminder`,
+           body: {
+               subscriptionId: subscription._id.toString(),
+           },
+           headers: {
+               "content-type": "application/json",
+           },
+       })   
+   } catch (err) {
+      console.error("Workflow trigger failed:", err);
+   } 
     res.status(200).json({ success: true, data: subscription });
   } catch (error) {
     next(error);

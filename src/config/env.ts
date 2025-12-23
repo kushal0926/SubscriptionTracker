@@ -20,3 +20,5 @@ export const QSTASH_CURRENT_SIGNING_KEY: string =
   process.env.QSTASH_CURRENT_SIGNING_KEY || "";
 export const QSTASH_NEXT_SIGNING_KEY: string =
   process.env.QSTASH_NEXT_SIGNING_KEY || "";
+export const EMAIL_PASSWORD: string = process.env.EMAIL_PASSWORD || "";
+

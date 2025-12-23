@@ -15,17 +15,18 @@ const app: Express = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
-app.use(errorMiddlware);
 app.use(arjectMiddleware);
 // apis
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/subscriptions", subscriptionRouter);
 app.use("/api/v1/workflows", workflowRouter);
+app.use(errorMiddlware);
 
 app.get("/", (req: Request, res: Response) => {
   res.send(`making the subscription tracking app using typescript`);
 });
+
 
 app.listen(PORT, async () => {
   console.log(
